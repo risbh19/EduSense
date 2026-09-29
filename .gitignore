@@ -1,12 +1,23 @@
 # Python
 backend/venv/
-backend/__pycache__/
-backend/*.pyc
+venv/
+__pycache__/
 *.pyc
+
+# Database (auto-created on first run)
+*.db
+*.sqlite3
+
+# Secrets
+.env
+.env.*
 
 # Node
 frontend/node_modules/
 frontend/dist/
+
+# Notebooks
+.ipynb_checkpoints/
 
 # HuggingFace cache
 .cache/
@@ -14,6 +25,8 @@ frontend/dist/
 # Dataset (large file)
 dataset/student_feedback.csv
 
-# OS
+# Editors / OS
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
