@@ -1,0 +1,19 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# HuggingFace cache
+.cache/
+
+# Dataset (large file)
+dataset/student_feedback.csv
+
+# OS
+.DS_Store
+Thumbs.db
