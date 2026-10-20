@@ -652,27 +652,8 @@ def analyze_batch(
                 continue
 
 
-            # Detect skill gaps
-            gap_result = detect_skill_gaps(
-                text
-            )
-
-
-            # Get recommendations
-            rec_result = get_recommendations(
-
-                skill_gaps=
-                    gap_result["skill_gaps"],
-
-                possible_gaps=
-                    gap_result["possible_gaps"],
-
-                strengths=
-                    gap_result["strengths"],
-
-                text=text
-            )
-
+            # Use the same validation, inference and persistence path as /analyze.
+            analysis_result = analyze_feedback(FeedbackRequest(text=text))
 
             results.append({
 
@@ -687,26 +668,29 @@ def analyze_batch(
                     ),
 
                 "sentiment":
-                    gap_result[
+                    analysis_result[
                         "sentiment"
                     ]["label"],
 
                 "skill_gaps":
-                    gap_result["skill_gaps"],
+                    analysis_result["skill_gaps"],
 
                 "possible_gaps":
-                    gap_result["possible_gaps"],
+                    analysis_result["possible_gaps"],
 
                 "strengths":
-                    gap_result["strengths"],
+                    analysis_result["strengths"],
 
                 "gap_severity":
-                    gap_result["gap_severity"],
+                    analysis_result["gap_severity"],
 
                 "overall_message":
-                    rec_result["overall_message"]
+                    analysis_result["overall_message"]
             })
 
+
+        except HTTPException as error:
+            results.append({"index": i, "error": error.detail})
 
         except Exception as e:
 
