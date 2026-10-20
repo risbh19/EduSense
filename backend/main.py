@@ -317,64 +317,32 @@ def get_progress():
         # -------------------------------------------------
 
         for analysis in analyses:
+            # Each skill contributes at most one observation per feedback.
+            # Confirmed gaps take precedence over possible gaps and strengths.
+            observations = {}
+            categories = (
+                (analysis.skill_gaps, analysis.gap_severity),
+                (analysis.possible_gaps, "medium"),
+                (analysis.strengths, "low"),
+            )
+            for skills, severity in categories:
+                for value in (skills or "").split(","):
+                    skill = value.strip()
+                    if skill:
+                        observations.setdefault(skill, severity.lower() if severity else None)
 
-            if not analysis.skill_gaps:
-                continue
-
-
-            skills = [
-
-                skill.strip()
-
-                for skill in
-                analysis.skill_gaps.split(",")
-
-                if skill.strip()
-            ]
-
-
-            for skill in skills:
-
-                if skill not in skill_data:
-
-                    skill_data[skill] = {
-
-                        "skill":
-                            skill,
-
-                        "attempts":
-                            0,
-
-                        "severity_history":
-                            [],
-
-                        "sentiment_history":
-                            []
-                    }
-
-
-                # Count attempt
-                skill_data[skill]["attempts"] += 1
-
-
-                # Store severity
-                if analysis.gap_severity:
-
-                    skill_data[skill][
-                        "severity_history"
-                    ].append(
-                        analysis.gap_severity.lower()
-                    )
-
-
-                # Store sentiment
+            for skill, severity in observations.items():
+                data = skill_data.setdefault(skill, {
+                    "skill": skill,
+                    "attempts": 0,
+                    "severity_history": [],
+                    "sentiment_history": [],
+                })
+                data["attempts"] += 1
+                if severity:
+                    data["severity_history"].append(severity)
                 if analysis.sentiment:
-
-                    skill_data[skill][
-                        "sentiment_history"
-                    ].append(
-                        analysis.sentiment
-                    )
+                    data["sentiment_history"].append(analysis.sentiment)
 
 
         # -------------------------------------------------
