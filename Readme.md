@@ -1,466 +1,265 @@
-# EduSense 🎓
+# EduSense
 
-### NLP-Based Adaptive Learning Path Recommendation System
+## NLP-Based Adaptive Learning Path Recommendation System
 
-EduSense is an **NLP-powered personalized learning system** that analyzes student feedback, identifies sentiment and skill gaps, and recommends relevant learning resources based on the student's learning needs.
+EduSense is an academic prototype that turns written student feedback into sentiment results, identified Computer Science skills, skill-gap categories and ranked learning resources. A React interface presents the results, saved analysis history and a severity-based progress view.
 
-The system converts unstructured student feedback into **actionable learning insights** using transformer-based NLP, topic extraction, semantic similarity, and a curated skills-resource knowledge base.
+The recommendations adapt to the topics and sentiment found in the feedback. The displayed learning path uses four fixed study stages; it does not generate a prerequisite graph or a personalised timetable.
 
----
-
-## 🚀 Demo
-
-> **Enter student feedback → Analyze sentiment → Detect skill gaps → Rank learning resources → Build a personalized learning path**
-
-### 🔗 Kaggle Notebook
-
-👉 **[EduSense — NLP Skill Gap Detection](https://www.kaggle.com/code/rixbh19/edusense-nlp-skill-gap-detection)**
-
-The Kaggle notebook demonstrates the NLP pipeline, skill-gap detection workflow, evaluation, and recommendation methodology.
-
-### 💡 Example
-
-**Input:**
+## How it works
 
 ```text
-I really struggled with recursion and dynamic programming.
-Base cases make no sense to me.
+Student feedback
+    |
+    +--> DistilBERT sentiment prediction
+    +--> spaCy keyword and topic extraction
+             |
+             v
+    Skill matching against the 18-skill catalogue
+             |
+             v
+    Confirmed gaps / possible gaps / strengths
+             |
+             v
+    MiniLM embeddings + cosine similarity of resource titles
+             |
+             v
+    Ranked resources + learning summary + frontend study stages
 ```
 
-**Analysis:**
+1. **Sentiment:** `distilbert-base-uncased-finetuned-sst-2-english` predicts positive or negative sentiment. The backend rounds confidence to four decimal places and relabels predictions below `0.65` as `NEUTRAL`. Sentiment inference uses the first 512 characters.
+2. **Topics:** spaCy `en_core_web_sm` extracts nouns, proper nouns and noun chunks. Skills are matched through direct keyword/phrase matching with plural support, followed by a fallback that requires at least two keyword hits from the extracted terms.
+3. **Skill gaps:** every matched skill receives the sentiment of the whole feedback.
 
-- **Sentiment:** `NEGATIVE` — 99.97% confidence
-- **Detected Skill Gaps:** `Recursion`, `Dynamic Programming`
-- **Recommended Resources:** Abdul Bari, Apna College, GeeksforGeeks
+| Sentiment | Skill category |
+| --- | --- |
+| `NEGATIVE` | Confirmed skill gap |
+| `NEUTRAL` | Possible gap |
+| `POSITIVE` | Strength |
 
-EduSense transforms qualitative student feedback into **personalized and actionable learning recommendations**.
+Overall severity is `high` for at least three confirmed gaps, `medium` for one or two confirmed gaps, and `low` when there are none.
 
----
+4. **Recommendations:** Sentence-Transformers `all-MiniLM-L6-v2` embeds the feedback and each resource title. Cosine similarity ranks the four resources configured for each selected skill. Resources for strengths are returned in `strengths_feedback`.
+5. **Learning path:** when confirmed gaps exist, the frontend displays Understand the Basics, Learn Through Videos, Read & Revise, and Practice Problems, with the identified focus skills.
 
-## 🧠 How It Works
+## Features and technology
 
-```text
-                    Student Feedback
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │ Sentiment Analysis│
-                 │    DistilBERT     │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │ Topic Extraction  │
-                 │      spaCy        │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │  Skill Gap        │
-                 │    Detection      │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │ Semantic Resource │
-                 │     Ranking       │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │ Personalized      │
-                 │ Learning Path     │
-                 └───────────────────┘
-```
-
----
-
-## ✨ Key Features
-
-- 🎭 **Sentiment Analysis** using DistilBERT
-- 🔍 **NLP-based Topic Extraction** using spaCy
-- 🧠 **Automatic Skill Gap Detection**
-- 📚 **Personalized Resource Recommendation**
-- 🔗 **Semantic Similarity Ranking** using Sentence Transformers
-- 📊 **Skill Gap Severity Classification**
-- ⚡ **REST API** using FastAPI
-- 🌐 **Interactive Frontend** using React + Vite
-- 📦 **Batch Feedback Analysis**
-- 🗂️ Curated database of **18 Computer Science skills**
-- 🎯 Learning resources mapped to individual skills
-
----
-
-## 🛠️ Tech Stack
+- Dashboard, Analyze Feedback, Learning Progress and History views, with light/dark themes.
+- Single-feedback analysis with SQLite persistence.
+- Batch feedback analysis for up to 50 items per request; batch results are returned without saving them.
+- Sentiment confidence, confirmed gaps, possible gaps, strengths and resource links.
+- Saved feedback history with expandable analysis details.
+- Dashboard statistics and progress indicators derived from stored analyses.
+- Curated catalogue of 18 Computer Science skills and 72 resources.
 
 | Layer | Technology |
 | --- | --- |
-| Programming Language | Python |
-| Sentiment Analysis | DistilBERT |
-| NLP / Topic Extraction | spaCy |
-| Semantic Similarity | Sentence Transformers |
-| Backend API | FastAPI |
-| ASGI Server | Uvicorn |
-| Frontend | React + Vite |
-| Dataset | Coursera Course Reviews — Kaggle |
-| NLP Model | `distilbert-base-uncased-finetuned-sst-2-english` |
-| Embedding Model | `all-MiniLM-L6-v2` |
+| Backend | Python, FastAPI, Uvicorn |
+| Storage | SQLAlchemy and SQLite |
+| Sentiment | Hugging Face Transformers and DistilBERT |
+| Topic extraction | spaCy and configured keywords |
+| Resource ranking | Sentence-Transformers and MiniLM |
+| Frontend | React 19, Vite 8 and axios |
+| Evaluation | Jupyter/Kaggle notebook, Coursera reviews, VADER and TextBlob |
 
----
-
-## 📁 Project Structure
+## Project structure
 
 ```text
 EduSense/
-│
-├── backend/
-│   ├── main.py                  # FastAPI routes
-│   ├── sentiment.py             # DistilBERT sentiment analysis
-│   ├── topic_extractor.py       # spaCy topic extraction
-│   ├── skill_gap.py             # Skill gap detection logic
-│   ├── recommender.py            # Semantic resource recommendation
-│   ├── skills_db.py              # Skills + learning resources database
-│   └── requirements.txt
-│
-├── frontend/
-│   └── src/
-│       ├── App.jsx
-│       └── components/
-│           ├── FeedbackInput.jsx
-│           ├── ResultCard.jsx
-│           ├── SkillGapCard.jsx
-│           └── RecommendationList.jsx
-│
-├── notebook/
-│   └── edusense_evaluation.ipynb
-│
-├── dataset/
-│   └── student_feedback.csv
-│
-└── README.md
+|-- Readme.md
+|-- backend/
+|   |-- main.py                 # API routes and persistence workflow
+|   |-- database.py             # Engine, sessions and declarative base
+|   |-- models.py               # FeedbackAnalysis table
+|   |-- sentiment.py            # DistilBERT inference
+|   |-- topic_extractor.py      # spaCy extraction and skill matching
+|   |-- skill_gap.py            # Gap categories and severity
+|   |-- recommender.py          # Resource-title similarity ranking
+|   |-- skills_db.py            # Skills, keywords and resource links
+|   `-- requirements.txt
+|-- frontend/
+|   |-- package.json
+|   |-- package-lock.json
+|   |-- vite.config.js
+|   `-- src/
+|       |-- App.jsx
+|       |-- App.css
+|       `-- components/
+|           |-- FeedbackInput.jsx
+|           |-- ResultCard.jsx
+|           |-- SkillGapCard.jsx
+|           |-- RecommendationList.jsx
+|           |-- LearningPath.jsx
+|           `-- History.jsx
+`-- notebook/
+    `-- edusense-nlp-skill-gap-detection.ipynb
 ```
 
----
+The database and raw evaluation CSV are not included in the current GitHub source tree. The backend creates `edusense.db` and its table when it starts. Its relative database path is resolved from the directory where the backend is launched.
 
-## ⚙️ Setup & Installation
+## Local setup
 
-### 1. Clone the Repository
+Use Python 3.10 or 3.11 for the pinned backend packages. The locked Vite package requires Node.js `^20.19.0 || >=22.12.0`; Node.js 22.12 or later satisfies this requirement. Model downloads and package installation require an internet connection.
+
+### 1. Clone the repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/risbh19/EduSense.git
 cd EduSense
 ```
 
----
+### 2. Set up the backend
 
-### 2. Backend Setup
-
-Navigate to the backend directory:
+From the repository root:
 
 ```bash
 cd backend
+python -m venv .venv
 ```
 
-Create a virtual environment:
+Activate the environment using the command for your shell:
 
-```bash
-python -m venv venv
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
 ```
 
-Activate the virtual environment on Windows:
-
 ```bash
-venv\Scripts\activate
+# macOS or Linux
+source .venv/bin/activate
 ```
 
-Install dependencies:
+Install the dependencies and the spaCy model:
 
 ```bash
-pip install -r requirements.txt
-```
-
-Download the spaCy English language model:
-
-```bash
+python -m pip install -r requirements.txt
+python -m pip install sqlalchemy==2.0.29
 python -m spacy download en_core_web_sm
 ```
 
-Start the backend:
+SQLAlchemy is imported by the application but is currently missing from `backend/requirements.txt`, so the separate installation command above is required.
+
+Start the server **from inside the `backend` directory**:
 
 ```bash
 python main.py
 ```
 
-Backend API:
+- API: http://localhost:8000
+- Interactive API documentation: http://localhost:8000/docs
 
-```text
-http://localhost:8000
-```
+DistilBERT and MiniLM load lazily on their first use. The initial analysis may take longer while downloading and loading their weights. The root endpoint confirms that the API is reachable; it is not a model-readiness check.
 
-Swagger API documentation:
+### 3. Set up the frontend
 
-```text
-http://localhost:8000/docs
-```
-
----
-
-### 3. Frontend Setup
-
-Open a new terminal and navigate to the frontend:
+Open another terminal and, from the repository root, run:
 
 ```bash
 cd frontend
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the development server:
-
-```bash
+npm ci
 npm run dev
 ```
 
-Frontend:
+Open the address printed by Vite, normally http://localhost:5173. The frontend calls the API at the fixed address `http://localhost:8000`, so keep the backend running on port 8000.
 
-```text
-http://localhost:5173
-```
+## API endpoints
 
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
+| Method | Path | Behaviour |
 | --- | --- | --- |
-| `GET` | `/` | API health check |
-| `POST` | `/analyze` | Analyze a single student feedback |
-| `POST` | `/analyze/batch` | Analyze multiple feedback entries |
-| `GET` | `/skills` | Retrieve all supported skills |
+| `GET` | `/` | API message, version and endpoint list |
+| `POST` | `/analyze` | Analyse one feedback text, save its summary, return results and ranked resources |
+| `POST` | `/analyze/batch` | Analyse 1-50 feedback strings and return per-item summaries or errors; does not save results |
+| `GET` | `/history` | Return saved analyses ordered by timestamp, newest first |
+| `GET` | `/progress` | Return per-skill progress derived from confirmed-gap records |
+| `GET` | `/stats` | Return saved analysis count, gap occurrences, unique gap skills and learning-path counter |
+| `GET` | `/skills` | Return supported skill names and their count |
 
----
+### Single analysis
 
-## 📤 Sample API Request
-
-### `POST /analyze`
+Send this JSON body to `POST /analyze` using the interactive API documentation or an HTTP client:
 
 ```json
 {
-  "text": "I really struggled with recursion and dynamic programming"
+  "text": "I am still confused by recursion and its base cases. I need a clearer explanation."
 }
 ```
 
----
+The response contains `sentiment`, `topics`, `skill_gaps`, `possible_gaps`, `strengths`, `gap_severity`, `recommendations`, `strengths_feedback` and `overall_message`. Scores and detected topics depend on the input and model output; they are not fixed values.
 
-## 📥 Sample API Response
+The endpoint trims whitespace and rejects empty input or fewer than five characters with HTTP 400. The frontend limits feedback entry to 500 characters. The API itself has no upper feedback-length limit.
+
+### Batch analysis
+
+Send this JSON body to `POST /analyze/batch`:
 
 ```json
 {
-  "sentiment": {
-    "label": "NEGATIVE",
-    "score": 0.9997,
-    "interpretation": "It looks like you're struggling here."
-  },
-  "skill_gaps": [
-    "Recursion",
-    "Dynamic Programming"
-  ],
-  "possible_gaps": [],
-  "strengths": [],
-  "gap_severity": "medium",
-  "recommendations": [
-    {
-      "skill": "Recursion",
-      "gap_type": "confirmed",
-      "resources": [
-        {
-          "title": "Recursion in Programming - Apna College",
-          "url": "https://www.youtube.com/watch?v=sE0-oFXCZFE",
-          "type": "video",
-          "relevance_score": 0.6852
-        }
-      ]
-    }
+  "feedbacks": [
+    "Recursion base cases are confusing.",
+    "I enjoyed learning SQL joins."
   ]
 }
 ```
 
----
+The response has `total` and `results`. Each successful item includes its index, a feedback preview, sentiment label, skill categories, severity and summary. Empty items produce a per-item error. An empty list or more than 50 entries returns HTTP 400.
 
-## 🧠 NLP & ML Pipeline
+Batch processing has its own inference path and does not apply the single endpoint's five-character validation. It does not insert history rows or update database-derived dashboard/progress statistics.
 
-EduSense combines multiple NLP components into a single learning-intelligence pipeline.
+## Storage and progress behaviour
 
-```text
-                    Input Feedback
-                          │
-                          ▼
-              ┌─────────────────────┐
-              │      DistilBERT     │
-              │ Sentiment Analysis  │
-              └──────────┬──────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │       spaCy         │
-              │ Topic / Keyword     │
-              │    Extraction       │
-              └──────────┬──────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │   Skill Matching    │
-              │  & Gap Detection    │
-              └──────────┬──────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │ Sentence Transformer│
-              │ Semantic Similarity │
-              └──────────┬──────────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │ Resource Ranking &  │
-              │ Recommendation      │
-              └─────────────────────┘
-```
+Successful single analyses are stored in the `feedback_analysis` table. Its fields are `id`, `feedback`, `sentiment`, `sentiment_confidence`, `topics`, `skill_gaps`, `possible_gaps`, `strengths`, `gap_severity`, `overall_message` and `created_at`. Skill lists are stored as comma-separated text. Ranked resource lists are not persisted.
 
----
+The current progress implementation:
 
-## 🔬 Model Components
+- Reads saved rows in ascending ID order and includes only rows with confirmed skill gaps.
+- Maps the overall feedback severity to `high = 30`, `medium = 60`, and `low = 90`.
+- Applies that same severity to each confirmed skill in the feedback.
+- Compares the first and latest mapped scores to display Improving, Stable or Needs Attention.
+- Ignores later positive/strength feedback and neutral/possible-gap feedback when building skill history.
 
-### 1. Sentiment Analysis
+A normal low-severity result has no confirmed gaps, so it does not contribute a low-severity observation to the current progress calculation. The percentages are severity-based indicators, not measured mastery or learning gains.
 
-EduSense uses:
+Dashboard gap counts and unique-skill counts also use confirmed gaps only. The `learning_paths` statistic equals the total number of saved analyses; it is not a count of independently saved learning plans. All database records are shared because the current schema has no student accounts or student identifiers.
 
-```text
-distilbert-base-uncased-finetuned-sst-2-english
-```
+## Supported skills
 
-to classify student feedback into sentiment categories and estimate confidence.
-
----
-
-### 2. Topic Extraction
-
-spaCy is used to extract relevant linguistic features and keywords from student feedback.
-
-These extracted signals are matched against the EduSense skills database.
-
----
-
-### 3. Skill Gap Detection
-
-The extracted topics are compared against a curated database of Computer Science skills.
-
-The system identifies:
-
-- **Confirmed skill gaps**
-- **Possible skill gaps**
-- **Existing strengths**
-- **Overall gap severity**
-
----
-
-### 4. Resource Recommendation
-
-EduSense uses:
-
-```text
-all-MiniLM-L6-v2
-```
-
-to calculate semantic similarity between the student's identified learning need and available learning resources.
-
-Resources are then ranked according to their relevance.
-
----
-
-## 🗄️ Skills Database
-
-EduSense currently covers **18 Computer Science topics** across three difficulty levels.
+Each skill has configured keywords and four learning resources.
 
 | Difficulty | Skills |
 | --- | --- |
-| Beginner | Arrays, Linked Lists, Sorting, OOP, SQL, Python, Web Development, Stacks & Queues |
+| Beginner | Arrays, Linked Lists, Sorting, OOP, SQL, Python, Web Dev, Stacks and Queues |
 | Intermediate | Trees, Recursion, DSA, DBMS, Operating Systems, Computer Networks, ML Basics, Hashing |
 | Advanced | Graphs, Dynamic Programming |
 
-Each skill contains:
+Resources include videos and articles from sources such as CodeWithHarry, Apna College, CodeHelp, Abdul Bari and GeeksforGeeks. Ranking uses resource titles; it does not inspect the full resource content or verify link availability.
 
-- **15–20 NLP keywords**
-- **4 curated learning resources**
-- Resource type information
-- Semantic relevance scoring
+## Notebook evaluation
 
----
+See [the repository notebook](notebook/edusense-nlp-skill-gap-detection.ipynb) or [the Kaggle notebook](https://www.kaggle.com/code/rixbh19/edusense-nlp-skill-gap-detection).
 
-## 📚 Learning Resources
+The saved notebook overview reports 140,320 Coursera reviews and 1,835 course identifiers. Keyword-based course filtering retains 47,888 reviews; this filter can include false positives and should not be treated as a manually verified CS-only dataset. A 300-review selection is described as balanced in the notebook, but its saved class counts are unequal.
 
-The recommendation database contains curated resources from platforms and educators such as:
+Ratings 1-2, 3 and 4-5 are mapped to negative, neutral and positive sentiment respectively. On the common 100-review evaluation:
 
-- Apna College
-- Abdul Bari
-- CodeWithHarry
-- GeeksforGeeks
+| Model | Accuracy |
+| --- | --- |
+| DistilBERT with the neutral confidence rule | 77% |
+| VADER | 62% |
+| TextBlob | 62% |
 
-The system ranks resources based on the detected skill gap and semantic relevance.
+DistilBERT records 88.37% on the separate positive/negative-only subset of 86 reviews. That score has a different denominator from the three-class comparison. Only one of 14 neutral reviews is classified correctly. The topic experiment matches at least one skill in 19 of 100 reviews; this is coverage, not topic accuracy.
 
----
+These are saved notebook results, not evidence of recommendation quality or improved learning outcomes. The notebook uses a Kaggle dataset path and additional evaluation packages; running it locally requires the review CSV, an adjusted dataset path and its notebook dependencies.
 
-## 📊 Evaluation & Notebook
+## Current limitations and future work
 
-The project's experimentation and evaluation workflow is available through the Kaggle notebook:
+- The sentiment model was trained for positive/negative classification; neutral labels come from a confidence rule and have weak coverage in the saved evaluation.
+- One sentiment is applied to every skill in a feedback message, so mixed opinions are not separated per topic.
+- Topic matching is restricted to the configured vocabulary and can match overlapping skills.
+- The four learning stages are fixed; there is no prerequisite reasoning, completion tracking or scheduling.
+- Batch results are not persisted, and later strengths do not update the progress history.
+- There are no user accounts, private per-student histories, authentication or API rate limits. CORS allows all origins, and the frontend API address is hard-coded.
+- A sentiment-processing error can be returned as a neutral fallback with an error field. Other failures may return HTTP 500.
+- The current repository contains no automated test suite. Module demonstration blocks and saved notebook outputs do not constitute full integration coverage.
 
-👉 **[Open EduSense Kaggle Notebook](https://www.kaggle.com/code/rixbh19/edusense-nlp-skill-gap-detection)**
-
-The notebook provides a reproducible environment for exploring the NLP-based skill-gap detection approach.
-
----
-
-## 🎯 Use Cases
-
-EduSense can be used in:
-
-### 👨‍🎓 Student Learning
-
-Identify concepts a student is struggling with and provide targeted resources.
-
-### 🏫 Educational Platforms
-
-Analyze large volumes of student feedback to discover common learning difficulties.
-
-### 👨‍🏫 Faculty & Mentors
-
-Surface recurring student challenges and support data-driven intervention.
-
-### 📈 Personalized Learning
-
-Generate adaptive learning paths based on individual feedback.
-
-### 🤖 AI Education Assistants
-
-Use student feedback as an input signal for intelligent tutoring systems.
-
----
-
-## 🔮 Future Improvements
-
-Potential extensions include:
-
-- Fine-tuning domain-specific transformer models
-- Multilingual student feedback analysis
-- Automated learning-path sequencing
-- Student progress tracking
-- Knowledge graph-based skill relationships
-- User-specific recommendation history
-- LLM-powered explanations and tutoring
-- Integration with LMS platforms
-- Real-time learning analytics dashboard
-
----
+Future work includes per-skill sentiment, broader topic extraction, prerequisite-aware plans, user accounts, batch persistence, progress that accounts for strengths and possible gaps, dependency-list completion, automated tests and labelled evaluations of recommendation relevance and learning outcomes.
