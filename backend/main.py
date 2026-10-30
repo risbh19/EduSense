@@ -317,32 +317,64 @@ def get_progress():
         # -------------------------------------------------
 
         for analysis in analyses:
-            # Each skill contributes at most one observation per feedback.
-            # Confirmed gaps take precedence over possible gaps and strengths.
-            observations = {}
-            categories = (
-                (analysis.skill_gaps, analysis.gap_severity),
-                (analysis.possible_gaps, "medium"),
-                (analysis.strengths, "low"),
-            )
-            for skills, severity in categories:
-                for value in (skills or "").split(","):
-                    skill = value.strip()
-                    if skill:
-                        observations.setdefault(skill, severity.lower() if severity else None)
 
-            for skill, severity in observations.items():
-                data = skill_data.setdefault(skill, {
-                    "skill": skill,
-                    "attempts": 0,
-                    "severity_history": [],
-                    "sentiment_history": [],
-                })
-                data["attempts"] += 1
-                if severity:
-                    data["severity_history"].append(severity)
+            if not analysis.skill_gaps:
+                continue
+
+
+            skills = [
+
+                skill.strip()
+
+                for skill in
+                analysis.skill_gaps.split(",")
+
+                if skill.strip()
+            ]
+
+
+            for skill in skills:
+
+                if skill not in skill_data:
+
+                    skill_data[skill] = {
+
+                        "skill":
+                            skill,
+
+                        "attempts":
+                            0,
+
+                        "severity_history":
+                            [],
+
+                        "sentiment_history":
+                            []
+                    }
+
+
+                # Count attempt
+                skill_data[skill]["attempts"] += 1
+
+
+                # Store severity
+                if analysis.gap_severity:
+
+                    skill_data[skill][
+                        "severity_history"
+                    ].append(
+                        analysis.gap_severity.lower()
+                    )
+
+
+                # Store sentiment
                 if analysis.sentiment:
-                    data["sentiment_history"].append(analysis.sentiment)
+
+                    skill_data[skill][
+                        "sentiment_history"
+                    ].append(
+                        analysis.sentiment
+                    )
 
 
         # -------------------------------------------------
@@ -620,8 +652,27 @@ def analyze_batch(
                 continue
 
 
-            # Use the same validation, inference and persistence path as /analyze.
-            analysis_result = analyze_feedback(FeedbackRequest(text=text))
+            # Detect skill gaps
+            gap_result = detect_skill_gaps(
+                text
+            )
+
+
+            # Get recommendations
+            rec_result = get_recommendations(
+
+                skill_gaps=
+                    gap_result["skill_gaps"],
+
+                possible_gaps=
+                    gap_result["possible_gaps"],
+
+                strengths=
+                    gap_result["strengths"],
+
+                text=text
+            )
+
 
             results.append({
 
@@ -636,29 +687,26 @@ def analyze_batch(
                     ),
 
                 "sentiment":
-                    analysis_result[
+                    gap_result[
                         "sentiment"
                     ]["label"],
 
                 "skill_gaps":
-                    analysis_result["skill_gaps"],
+                    gap_result["skill_gaps"],
 
                 "possible_gaps":
-                    analysis_result["possible_gaps"],
+                    gap_result["possible_gaps"],
 
                 "strengths":
-                    analysis_result["strengths"],
+                    gap_result["strengths"],
 
                 "gap_severity":
-                    analysis_result["gap_severity"],
+                    gap_result["gap_severity"],
 
                 "overall_message":
-                    analysis_result["overall_message"]
+                    rec_result["overall_message"]
             })
 
-
-        except HTTPException as error:
-            results.append({"index": i, "error": error.detail})
 
         except Exception as e:
 
