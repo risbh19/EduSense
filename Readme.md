@@ -1,30 +1,47 @@
+<div align="center">
+
 # EduSense
 
-## NLP-Based Adaptive Learning Path Recommendation System
+**Turn student feedback into skills to revisit and resources to explore.**
 
 EduSense is an academic prototype that turns written student feedback into sentiment results, identified Computer Science skills, skill-gap categories and ranked learning resources. A React interface presents the results, saved analysis history and a severity-based progress view.
 
+![Python](https://img.shields.io/badge/Python-334155?style=flat-square)
+![FastAPI](https://img.shields.io/badge/FastAPI-334155?style=flat-square)
+![React](https://img.shields.io/badge/React-334155?style=flat-square)
+![SQLite](https://img.shields.io/badge/SQLite-334155?style=flat-square)
+
+[How it works](#how-it-works) · [Project structure](#project-structure) · [Quick start](#quick-start) · [API endpoints](#api-endpoints)
+
+</div>
+
+---
+
 The recommendations adapt to the topics and sentiment found in the feedback. The displayed learning path uses four fixed study stages; it does not generate a prerequisite graph or a personalised timetable.
+
+## The problem
+
+A feedback sentence can mention both a topic and a learning difficulty, yet those details are hard to organise at scale. EduSense extracts sentiment and skill matches, then presents relevant resources alongside saved analysis history.
+
+## At a glance
+
+| Area | What it covers |
+| --- | --- |
+| Feedback analysis | Sentiment, topics and matched skills |
+| Resource ranking | MiniLM similarity over curated resource titles |
+| Learning review | Saved analyses and severity-based progress indicators |
 
 ## How it works
 
-```text
-Student feedback
-    |
-    +--> DistilBERT sentiment prediction
-    +--> spaCy keyword and topic extraction
-             |
-             v
-    Skill matching against the 18-skill catalogue
-             |
-             v
-    Confirmed gaps / possible gaps / strengths
-             |
-             v
-    MiniLM embeddings + cosine similarity of resource titles
-             |
-             v
-    Ranked resources + learning summary + frontend study stages
+```mermaid
+flowchart TD
+  input["Student feedback"] --> sentiment["DistilBERT sentiment"]
+  input --> topics["spaCy topic extraction"]
+  sentiment --> gaps["Skill categories"]
+  topics --> gaps
+  gaps --> rank["MiniLM resource ranking"]
+  rank --> ui["Study stages and results"]
+  ui --> history["SQLite analysis history"]
 ```
 
 1. **Sentiment:** `distilbert-base-uncased-finetuned-sst-2-english` predicts positive or negative sentiment. The backend rounds confidence to four decimal places and relabels predictions below `0.65` as `NEUTRAL`. Sentiment inference uses the first 512 characters.
@@ -97,7 +114,7 @@ EduSense/
 
 The database and raw evaluation CSV are not included in the current GitHub source tree. The backend creates `edusense.db` and its table when it starts. Its relative database path is resolved from the directory where the backend is launched.
 
-## Local setup
+## Quick start
 
 Use Python 3.10 or 3.11 for the pinned backend packages. The locked Vite package requires Node.js `^20.19.0 || >=22.12.0`; Node.js 22.12 or later satisfies this requirement. Model downloads and package installation require an internet connection.
 
